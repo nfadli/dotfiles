@@ -1,0 +1,23 @@
+# ==============================================================================
+# FONT CONFIGURATION
+# ==============================================================================
+font-size = 10.0
+
+font-family = "JetBrains Mono Nerd Font"
+font-style = "Regular"
+
+font-family-bold = "JetBrains Mono Nerd Font"
+font-style-bold = "Bold"
+
+font-family-italic = "JetBrains Mono Nerd Font"
+font-style-italic = "Italic"
+
+font-family-bold-italic = "JetBrains Mono Nerd Font"
+font-style-bold-italic = "Bold Italic"
+
+# ==============================================================================
+# TAB KEYBINDINGS
+# ==============================================================================
+keybind = ctrl+shift+t=new_tab
+keybind = ctrl+shift+l=next_tab
+keybind = ctrl+shift+h=previous_tab
