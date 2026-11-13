@@ -1,27 +1,56 @@
-#!/bin/sh
-DIR=$(pwd)
-ARCHIVE="adw-gtk3v6.5.tar.xz"
+#!/usr/bin/env bash
+set -e
+
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CFG="$HOME/.config"
 TARGET="$HOME/.themes"
 
 mkdir -p "$TARGET"
-tar -xf "$DIR/$ARCHIVE" -C "$TARGET"
+
+# ==========================================
+# DAFTAR TEMA YANG INGIN DI-INSTALL
+# Cukup tambahkan nama file arsip (.tar.xz / .zip) di sini
+# ==========================================
+THEMES=(
+	"adw-gtk3v6.5.tar.xz"
+	"WhiteSur-Dark-solid.tar.xz"
+	# Contoh jika nanti mau tambah tema lain:
+	# "another-theme-v1.0.tar.xz"
+)
+
+# Loop untuk mengekstrak setiap tema secara otomatis
+for ARCHIVE in "${THEMES[@]}"; do
+	ARCHIVE_PATH="$DIR/$ARCHIVE"
+	if [ -f "$ARCHIVE_PATH" ]; then
+		echo " -> Mengekstrak tema: $ARCHIVE"
+		tar -xf "$ARCHIVE_PATH" -C "$TARGET"
+	else
+		echo "Warning: Arsip $ARCHIVE tidak ditemukan di $DIR, dilewati."
+	fi
+done
+
+# Tentukan tema utama yang aktif (bisa disesuaikan atau dibuat variabel)
+ACTIVE_THEME="WhiteSur-Dark-solid"
 
 # 1. Atur tema GTK & dekorasi jendela khusus Cinnamon
-gsettings set org.cinnamon.desktop.interface gtk-theme 'adw-gtk3-dark'
-gsettings set org.cinnamon.desktop.wm.preferences theme 'adw-gtk3-dark'
+gsettings set org.cinnamon.desktop.interface gtk-theme "$ACTIVE_THEME"
+gsettings set org.cinnamon.desktop.wm.preferences theme "$ACTIVE_THEME"
 gsettings set org.x.apps.portal color-scheme 'prefer-dark'
 
-# 2. Opsional: Tetap set skema GNOME/Portal agar aplikasi Flatpak/GTK4 tahu mode gelap aktif
-gsettings set org.gnome.desktop.interface gtk-theme 'adw-gtk3-dark'
+# 2. Skema GNOME/Portal untuk Flatpak/GTK4
+gsettings set org.gnome.desktop.interface gtk-theme "$ACTIVE_THEME"
 gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark'
 
-# 3. Fallback untuk aplikasi GTK3/GTK4 yang membaca file konfigurasi langsung
+# 3. Fallback konfigurasi GTK3/GTK4
 for v in gtk-3.0 gtk-4.0; do
 	mkdir -p "$CFG/$v"
-	printf "[Settings]\ngtk-theme-name=adw-gtk3-dark\ngtk-application-prefer-dark-theme=1\n" >"$CFG/$v/settings.ini"
+	printf "[Settings]\ngtk-theme-name=%s\ngtk-application-prefer-dark-theme=1\n" "$ACTIVE_THEME" >"$CFG/$v/settings.ini"
 done
-dconf load /org/cinnamon/desktop/keybindings/ <cinnamon-keybindings.conf
 
-echo " -> adw-gtk3-dark theme installed"
+# Load keybindings jika file-nya ada
+if [ -f "$DIR/cinnamon-keybindings.conf" ]; then
+	dconf load /org/cinnamon/desktop/keybindings/ <"$DIR/cinnamon-keybindings.conf"
+fi
+
+echo " -> Tema '$ACTIVE_THEME' berhasil dipasang!"
 cinnamon-session-quit --logout --no-prompt
