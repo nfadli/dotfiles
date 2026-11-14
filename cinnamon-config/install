@@ -36,6 +36,7 @@ ACTIVE_THEME="WhiteSur-Dark-solid"
 gsettings set org.cinnamon.desktop.interface gtk-theme "$ACTIVE_THEME"
 gsettings set org.cinnamon.desktop.wm.preferences theme "$ACTIVE_THEME"
 gsettings set org.x.apps.portal color-scheme 'prefer-dark'
+gsettings set org.cinnamon.desktop.wm.preferences button-layout 'close,minimize,maximize:'
 
 # 2. Skema GNOME/Portal untuk Flatpak/GTK4
 gsettings set org.gnome.desktop.interface gtk-theme "$ACTIVE_THEME"
