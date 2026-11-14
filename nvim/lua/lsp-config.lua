@@ -30,7 +30,7 @@ local servers = {
 	"emmet_ls",
 	"css",
 	"zls",
-	"cland",
+	"clangd",
 }
 
 for _, server in ipairs(servers) do
