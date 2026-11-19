@@ -1,5 +1,5 @@
-#Ai generated
 #!/usr/bin/env bash
+#Ai generated
 set -e
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SRC="$DIR"

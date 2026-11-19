@@ -1,5 +1,5 @@
-# Ai generated
 #!/usr/bin/env bash
+# Ai generated
 set -euo pipefail
 
 DIR="${2:-$(pwd)}"
