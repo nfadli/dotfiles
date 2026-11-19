@@ -1,0 +1,6 @@
+require("config.keymap")
+require("config.options")
+require("config.oil")
+require("config.conform")
+require("config.autopairs")
+require("config.fzf")

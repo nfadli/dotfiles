@@ -1,0 +1,104 @@
+#Ai generated
+#!/usr/bin/env bash
+set -euo pipefail
+
+INSTALL_DIR="$HOME/.local/opt/vscode"
+BIN_DIR="$HOME/.local/bin"
+APP_DIR="$HOME/.local/share/applications"
+
+BIN_LINK="$BIN_DIR/code"
+DESKTOP_FILE="$APP_DIR/code.desktop"
+URL_HANDLER_FILE="$APP_DIR/code-url-handler.desktop"
+
+if [[ $# -lt 1 ]]; then
+  echo "Usage:"
+  echo "  setup-vscode /path/to/code-stable-*.tar.gz"
+  echo "  setup-vscode reset"
+  exit 1
+fi
+
+if [[ "$1" == "reset" ]]; then
+  echo "Menghapus seluruh instalasi, konfigurasi, ekstensi, dan cache VS Code di $HOME..."
+
+  # 1. File aplikasi, binary symlink, dan entry menu
+  rm -rf "$INSTALL_DIR"
+  rm -f "$BIN_LINK" "$DESKTOP_FILE" "$URL_HANDLER_FILE"
+
+  # 2. Seluruh konfigurasi, ekstensi, cache, dan jejak data VS Code di $HOME
+  rm -rf "$HOME/.vscode"
+  rm -rf "$HOME/.config/Code"
+  rm -rf "$HOME/.cache/Code"
+  rm -rf "$HOME/.local/share/Code"
+  rm -rf "$HOME/.local/state/Code"
+  rm -rf "$HOME/.vscode-server"
+  rm -rf "$HOME/.vscode-oss"
+
+  if command -v update-desktop-database &>/dev/null; then
+    update-desktop-database "$APP_DIR"
+  fi
+
+  echo "Reset total selesai! Semua jejak VS Code di $HOME telah dibersihkan."
+  exit 0
+fi
+
+ARCHIVE="$1"
+
+if [[ ! -f "$ARCHIVE" ]]; then
+  echo "Error: File '$ARCHIVE' tidak ditemukan."
+  exit 1
+fi
+
+echo "Menyiapkan direktori di $HOME/.local..."
+mkdir -p "$BIN_DIR" "$APP_DIR"
+rm -rf "$INSTALL_DIR"
+mkdir -p "$INSTALL_DIR"
+
+echo "Mengekstrak $ARCHIVE ke $INSTALL_DIR..."
+tar -xf "$ARCHIVE" -C "$INSTALL_DIR" --strip-components=1
+
+echo "Membuat symlink di $BIN_LINK..."
+ln -sf "$INSTALL_DIR/bin/code" "$BIN_LINK"
+
+echo "Membuat desktop entry..."
+cat <<EOF >"$DESKTOP_FILE"
+[Desktop Entry]
+Name=Visual Studio Code
+Comment=Code Editing. Redefined.
+GenericName=Text Editor
+Exec=$INSTALL_DIR/code %F
+Icon=$INSTALL_DIR/resources/app/resources/linux/code.png
+Type=Application
+StartupNotify=false
+StartupWMClass=Code
+Categories=TextEditor;Development;IDE;
+MimeType=application/x-code-workspace;
+Actions=new-empty-window;
+Keywords=vscode;
+
+[Desktop Action new-empty-window]
+Name=New Empty Window
+Exec=$INSTALL_DIR/code --new-window %F
+Icon=$INSTALL_DIR/resources/app/resources/linux/code.png
+EOF
+
+echo "Membuat URL handler desktop entry..."
+cat <<EOF >"$URL_HANDLER_FILE"
+[Desktop Entry]
+Name=Visual Studio Code - URL Handler
+Comment=Code Editing. Redefined.
+GenericName=Text Editor
+Exec=$INSTALL_DIR/code --open-url %U
+Icon=$INSTALL_DIR/resources/app/resources/linux/code.png
+Type=Application
+NoDisplay=true
+StartupNotify=true
+Categories=Utility;TextEditor;Development;IDE;
+MimeType=x-scheme-handler/vscode;
+Keywords=vscode;
+EOF
+
+if command -v update-desktop-database &>/dev/null; then
+  update-desktop-database "$APP_DIR"
+fi
+
+echo "Selesai! Jalankan 'code' di terminal atau buka Visual Studio Code di fuzzel."
