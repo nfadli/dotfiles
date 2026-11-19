@@ -1,0 +1,8 @@
+[media-keys]
+logout=['<Shift><Super>e']
+
+[wm]
+close=['<Super>q']
+switch-windows=['<Super>j']
+switch-windows-backward=['<Super>k']
+toggle-maximized=['<Super>m']
