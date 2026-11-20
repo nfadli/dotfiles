@@ -1,0 +1,271 @@
+#!/bin/bash
+
+echo "1. Menghentikan panel dan daemon xfconf..."
+xfce4-panel -q
+pkill xfconfd
+sleep 1
+
+echo "2. Membuat ikon Void Linux (SVG & PNG terindeks)..."
+mkdir -p ~/.local/share/icons/hicolor/scalable/apps
+mkdir -p ~/.local/share/icons/hicolor/24x24/apps
+
+# Simpan versi SVG
+cat <<'EOF' >~/.local/share/icons/hicolor/scalable/apps/void-logo.svg
+<svg xmlns="http://w3.org" viewBox="0 0 256 256" width="256" height="256">
+  <path fill="#478061" d="M128 16C66.1 16 16 66.1 16 128c0 24.3 7.7 46.8 20.9 65.2l26.4-26.4C56.1 155.5 52 142.2 52 128c0-42 34-76 76-76 14.2 0 27.5 4.1 38.8 11.3l26.4-26.4C174.8 23.7 152.3 16 128 16z"/>
+  <path fill="#8ab39b" d="M219.1 62.8l-26.4 26.4c7.2 11.3 11.3 24.6 11.3 38.8 0 42-34 76-76 76-14.2 0-27.5-4.1-38.8-11.3l-26.4 26.4C81.2 232.3 103.7 240 128 240c61.9 0 112-50.1 112-112 0-24.3-7.7-46.8-20.9-65.2z"/>
+  <circle fill="#478061" cx="128" cy="128" r="34"/>
+</svg>
+EOF
+
+# Generate versi PNG 24x24 menggunakan Python standar (pasti terbaca GTK)
+python3 -c '
+import zlib, struct, math
+
+w, h = 24, 24
+raw = bytearray()
+for y in range(h):
+    raw.append(0)
+    for x in range(w):
+        dx, dy = x - 11.5, y - 11.5
+        d = math.hypot(dx, dy)
+        ang = math.atan2(dy, dx)
+        # Lingkaran dalam Void (#478061)
+        if d <= 3.2:
+            raw.extend((71, 128, 97, 255))
+        # Cincin luar Void terputus diagonal
+        elif 6.2 <= d <= 9.8:
+            if -2.35 < ang < 0.78:
+                raw.extend((71, 128, 97, 255))   # Hijau Void utama
+            else:
+                raw.extend((138, 179, 155, 255)) # Hijau Void sage
+        else:
+            raw.extend((0, 0, 0, 0))
+
+def chunk(tag, data):
+    return struct.pack("!I", len(data)) + tag + data + struct.pack("!I", zlib.crc32(tag + data) & 0xffffffff)
+
+png = b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack("!IIBBBBB", w, h, 8, 6, 0, 0, 0)) + chunk(b"IDAT", zlib.compress(bytes(raw))) + chunk(b"IEND", b"")
+open("'"$HOME"'/.local/share/icons/hicolor/24x24/apps/void-logo.png", "wb").write(png)
+'
+
+# Update cache ikon GTK jika tersedia
+gtk-update-icon-cache -f -t ~/.local/share/icons/hicolor 2>/dev/null
+
+echo "3. Mengatur jumlah workspace menjadi 4..."
+xfconf-query -c xfwm4 -p /general/workspace_count -n -t int -s 4 --create
+xfconf-query -c xfwm4 -p /general/workspace_names -n \
+  -t string -s "1" \
+  -t string -s "2" \
+  -t string -s "3" \
+  -t string -s "4" --create
+
+# Hitung otomatis koordinat X tengah layar
+SCREEN_W=$(xrandr | grep ' connected' | head -n 1 | grep -oE '[0-9]+x[0-9]+' | cut -d'x' -f1)
+SCREEN_W=${SCREEN_W:-1920}
+CENTER_X=$(((SCREEN_W / 2) - 28))
+
+echo "4. Menerapkan styling CSS Void Linux..."
+mkdir -p ~/.config/gtk-3.0
+cat <<'EOF' >~/.config/gtk-3.0/gtk.css
+.xfce4-panel {
+    background-color: #111613;
+    border-bottom: 1px solid #29382f;
+    border-radius: 0px;
+    color: #d3e0d7;
+    font-family: "JetBrains Mono", "Fira Code", monospace;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+/* Panel 2 (Khusus Workspace Tengah Atas) */
+#XfcePanelWindow-2 {
+    background-color: #111613;
+    border-bottom: 1px solid #29382f;
+}
+
+/* Reset tombol panel umum */
+.xfce4-panel button {
+    border-radius: 0px;
+    margin: 0px;
+    padding: 0px 4px;
+    min-height: 0px;
+    min-width: 0px;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    color: #8ab39b;
+}
+
+/* Tombol Logo Void di pojok paling kiri */
+#applicationmenu-button {
+    padding: 0px 6px;
+}
+
+#applicationmenu-button:hover {
+    background-color: #1c2620;
+}
+
+.xfce4-panel button:hover {
+    background-color: #1c2620;
+    color: #ffffff;
+}
+
+/* Tasklist aktif */
+.xfce4-panel button:checked {
+    background-color: #478061;
+    color: #ffffff;
+}
+
+/* --- WORKSPACE FIXED CENTER (#pager-10): 10px (AKTIF) vs 5px (TIDAK AKTIF) --- */
+#pager-10 button label {
+    font-size: 0px;
+    color: transparent;
+}
+
+#pager-10 button {
+    min-width: 11px;
+    min-height: 5px;
+    margin: 8px 1px;
+    padding: 0px;
+    border-radius: 3px;
+    background-color: #2e4236;
+    background-clip: padding-box;
+    border-left: 3px solid transparent;
+    border-right: 3px solid transparent;
+    transition: all 0.15s ease;
+}
+
+#pager-10 button:hover {
+    background-color: #5c9e7a;
+}
+
+#pager-10 button:checked {
+    background-color: #478061;
+    background-clip: padding-box;
+    border-left: 0px solid transparent;
+    border-right: 0px solid transparent;
+}
+
+/* Jam */
+#clock-button {
+    padding: 0px 8px;
+    color: #d3e0d7;
+}
+
+/* Tombol Power di pojok kanan */
+#actions-6 button {
+    color: #e06c75;
+    padding: 0px 8px;
+}
+
+#actions-6 button:hover {
+    background-color: #e06c75;
+    color: #111613;
+}
+EOF
+
+echo "5. Menulis konfigurasi XML panel..."
+mkdir -p ~/.config/xfce4/xfconf/xfce-perchannel-xml
+cat <<EOF >~/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml
+<?xml version="1.0" encoding="UTF-8"?>
+<channel name="xfce4-panel" version="1.0">
+  <property name="configver" type="int" value="2"/>
+  <property name="panels" type="array">
+    <value type="int" value="1"/>
+    <value type="int" value="2"/>
+    <property name="dark-mode" type="bool" value="true"/>
+    
+    <!-- PANEL 1: Bar Utama -->
+    <property name="panel-1" type="empty">
+      <property name="position" type="string" value="p=6;x=0;y=0"/>
+      <property name="length" type="uint" value="100"/>
+      <property name="length-adjust" type="bool" value="true"/>
+      <property name="position-locked" type="bool" value="true"/>
+      <property name="size" type="uint" value="22"/>
+      <property name="icon-size" type="uint" value="16"/>
+      <property name="background-style" type="uint" value="0"/>
+      <property name="plugin-ids" type="array">
+        <value type="int" value="1"/>
+        <value type="int" value="2"/>
+        <value type="int" value="3"/>
+        <value type="int" value="4"/>
+        <value type="int" value="5"/>
+        <value type="int" value="6"/>
+      </property>
+    </property>
+
+    <!-- PANEL 2: Khusus Workspace Fixed di Tengah Atas (y=0) -->
+    <property name="panel-2" type="empty">
+      <property name="position" type="string" value="p=0;x=${CENTER_X};y=0"/>
+      <property name="length" type="uint" value="1"/>
+      <property name="length-adjust" type="bool" value="true"/>
+      <property name="position-locked" type="bool" value="true"/>
+      <property name="disable-struts" type="bool" value="true"/>
+      <property name="size" type="uint" value="22"/>
+      <property name="background-style" type="uint" value="0"/>
+      <property name="plugin-ids" type="array">
+        <value type="int" value="10"/>
+      </property>
+    </property>
+  </property>
+
+  <property name="plugins" type="empty">
+    <!-- 1. Paling Kiri: Logo Void Linux -->
+    <property name="plugin-1" type="string" value="applicationsmenu">
+      <property name="button-icon" type="string" value="void-logo"/>
+      <property name="show-button-title" type="bool" value="false"/>
+    </property>
+    <!-- 2. Daftar Jendela Aktif -->
+    <property name="plugin-2" type="string" value="tasklist">
+      <property name="flat-buttons" type="bool" value="true"/>
+      <property name="show-labels" type="bool" value="true"/>
+      <property name="show-handle" type="bool" value="false"/>
+      <property name="grouping" type="uint" value="1"/>
+    </property>
+    <!-- 3. Pendorong ke kanan -->
+    <property name="plugin-3" type="string" value="separator">
+      <property name="expand" type="bool" value="true"/>
+      <property name="style" type="uint" value="0"/>
+    </property>
+    <!-- 4. System Tray -->
+    <property name="plugin-4" type="string" value="systray">
+      <property name="square-icons" type="bool" value="true"/>
+      <property name="icon-size" type="int" value="14"/>
+    </property>
+    <!-- 5. Jam -->
+    <property name="plugin-5" type="string" value="clock">
+      <property name="digital-format" type="string" value="%Y-%m-%d %H:%M:%S"/>
+    </property>
+    <!-- 6. Tombol Power -->
+    <property name="plugin-6" type="string" value="actions">
+      <property name="appearance" type="uint" value="0"/>
+      <property name="invert-orientation" type="bool" value="false"/>
+      <property name="items" type="array">
+        <value type="string" value="-lock-screen"/>
+        <value type="string" value="-switch-user"/>
+        <value type="string" value="-separator"/>
+        <value type="string" value="+suspend"/>
+        <value type="string" value="-hibernate"/>
+        <value type="string" value="-hybrid-sleep"/>
+        <value type="string" value="-separator"/>
+        <value type="string" value="+shutdown"/>
+        <value type="string" value="+restart"/>
+        <value type="string" value="-separator"/>
+        <value type="string" value="+logout"/>
+        <value type="string" value="-logout-dialog"/>
+      </property>
+    </property>
+
+    <!-- Plugin Panel 2 (Workspace Fixed Center) -->
+    <property name="plugin-10" type="string" value="pager">
+      <property name="rows" type="uint" value="1"/>
+      <property name="miniature-view" type="bool" value="false"/>
+    </property>
+  </property>
+</channel>
+EOF
+
+echo "6. Menyalakan kembali panel..."
+nohup xfce4-panel >/dev/null 2>&1 &
+echo "Selesai! Ikon Void Linux sekarang muncul di pojok kiri atas."
