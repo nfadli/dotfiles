@@ -187,6 +187,8 @@
       <property name="&lt;Super&gt;j" type="string" value="cycle_windows_key"/>
       <property name="&lt;Super&gt;k" type="string" value="cycle_reverse_windows_key"/>
       <property name="&lt;Super&gt;m" type="string" value="maximize_window_key"/>
+      <property name="&lt;Super&gt;i" type="string" value="prev_workspace_key"/>
+      <property name="&lt;Super&gt;u" type="string" value="next_workspace_key"/>
     </property>
   </property>
   <property name="providers" type="array">
