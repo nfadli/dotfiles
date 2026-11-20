@@ -9,7 +9,6 @@ TARGETS=(
   "gitconfig"
   "nvim"
   "alacritty"
-  "xfce4"
 )
 [ -d "$SRC" ] || {
   echo "Error: $SRC not found"

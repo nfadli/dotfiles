@@ -2,16 +2,16 @@
 
 | Component | Choice | Notes |
 | :--- | :--- | :--- |
-| **OS** | Linux Mint | Cinnamon Desktop Environment |
+| **OS** | [Void Linux](https://voidlinux.org) | [XFCE](https://xfce.org) Desktop Environment |
 | **Terminal** | [Alacritty](https://github.com/alacritty/alacritty) | GPU-accelerated terminal emulator |
 | **Editor** | [Neovim](https://neovim.io/) | Custom Lua configuration |
-| **IDE** | VS Code | Configured with the **Vim** extension for *modal editing* |
+| **IDE** | [VS Code](https://visualstudio.com) | Configured with the [**Vim**](https://visualstudio.com) extension for *modal editing* |
 
 ### ⚡ Quick Install (Alacritty)
-To install Alacritty on Linux Mint / Ubuntu:
+To install Alacritty on Void Linux:
 
 ```bash
-sudo add-apt-repository ppa:aslatter/ppa -y
-sudo apt update && sudo apt install alacritty -y
+sudo xbps-install -S alacritty
 ```
+
 **Note:** Some of the scripts and dotfiles in this repository were created with AI assistance, with me directing the setup, structure, and requirements.
