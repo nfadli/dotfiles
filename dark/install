@@ -1,0 +1,129 @@
+#!/bin/sh
+
+MODE="$1"
+
+if [ "$MODE" != "dark" ] && [ "$MODE" != "white" ]; then
+  echo "Penggunaan: ./install dark | white"
+  exit 1
+fi
+
+ARCHIVE=""
+if [ -f "./adw-gtk3v6.5.tar.xz" ]; then
+  ARCHIVE="./adw-gtk3v6.5.tar.xz"
+elif [ -f "$HOME/Downloads/adw-gtk3v6.5.tar.xz" ]; then
+  ARCHIVE="$HOME/Downloads/adw-gtk3v6.5.tar.xz"
+else
+  echo "Error: File adw-gtk3v6.5.tar.xz tidak ditemukan di folder ini maupun ~/Downloads!"
+  exit 1
+fi
+
+echo "1. Mengekstrak $ARCHIVE ke ~/.themes..."
+mkdir -p "$HOME/.themes"
+tar -xf "$ARCHIVE" -C "$HOME/.themes/"
+
+if [ "$MODE" = "dark" ]; then
+  THEME_NAME="adw-gtk3-dark"
+  QT_STYLE="adwaita-dark"
+  PREFER_DARK=1
+  COLOR_SCHEME="prefer-dark"
+else
+  THEME_NAME="adw-gtk3"
+  QT_STYLE="adwaita"
+  PREFER_DARK=0
+  COLOR_SCHEME="default"
+fi
+
+echo "2. Mengatur XFCE4 Appearance & Window Manager ke $THEME_NAME..."
+xfconf-query -c xsettings -p /Net/ThemeName -n -t string -s "$THEME_NAME" 2>/dev/null || xfconf-query -c xsettings -p /Net/ThemeName -s "$THEME_NAME"
+xfconf-query -c xfwm4 -p /general/theme -n -t string -s "$THEME_NAME" 2>/dev/null || xfconf-query -c xfwm4 -p /general/theme -s "$THEME_NAME"
+
+echo "3. Mengatur GTK2, GTK3, GTK4, dan Preferensi Warna Aplikasi..."
+# GTK 2
+cat <<GTK2 >"$HOME/.gtkrc-2.0"
+gtk-theme-name="$THEME_NAME"
+GTK2
+
+# GTK 3
+mkdir -p "$HOME/.config/gtk-3.0"
+cat <<GTK3 >"$HOME/.config/gtk-3.0/settings.ini"
+[Settings]
+gtk-theme-name=$THEME_NAME
+gtk-application-prefer-dark-theme=$PREFER_DARK
+GTK3
+
+# GTK 4 & Libadwaita
+mkdir -p "$HOME/.config/gtk-4.0"
+rm -rf "$HOME/.config/gtk-4.0/assets" "$HOME/.config/gtk-4.0/gtk.css" "$HOME/.config/gtk-4.0/gtk-dark.css"
+ln -sf "$HOME/.themes/$THEME_NAME/gtk-4.0/assets" "$HOME/.config/gtk-4.0/assets"
+ln -sf "$HOME/.themes/$THEME_NAME/gtk-4.0/gtk.css" "$HOME/.config/gtk-4.0/gtk.css"
+ln -sf "$HOME/.themes/$THEME_NAME/gtk-4.0/gtk-dark.css" "$HOME/.config/gtk-4.0/gtk-dark.css"
+
+cat <<GTK4 >"$HOME/.config/gtk-4.0/settings.ini"
+[Settings]
+gtk-theme-name=$THEME_NAME
+gtk-application-prefer-dark-theme=$PREFER_DARK
+GTK4
+
+# Preferensi Dark/Light global (Firefox, Chromium, Electron, Libadwaita)
+if command -v gsettings >/dev/null 2>&1; then
+  gsettings set org.gnome.desktop.interface gtk-theme "$THEME_NAME" 2>/dev/null
+  gsettings set org.gnome.desktop.interface color-scheme "$COLOR_SCHEME" 2>/dev/null
+fi
+
+echo "4. Mengatur aplikasi Qt5 & Qt6 (adwaita-qt + qt5ct/qt6ct)..."
+if ! xbps-query adwaita-qt >/dev/null 2>&1 || ! xbps-query adwaita-qt6 >/dev/null 2>&1 || ! xbps-query qt5ct >/dev/null 2>&1 || ! xbps-query qt6ct >/dev/null 2>&1; then
+  echo "   Memasang adwaita-qt, adwaita-qt6, qt5ct, dan qt6ct via xbps..."
+  sudo xbps-install -Sy adwaita-qt adwaita-qt6 qt5ct qt6ct
+fi
+
+# Konfigurasi otomatis qt5ct & qt6ct
+mkdir -p "$HOME/.config/qt5ct" "$HOME/.config/qt6ct"
+cat <<QTCONF >"$HOME/.config/qt5ct/qt5ct.conf"
+[Appearance]
+style=$QT_STYLE
+standard_dialogs=gtk3
+QTCONF
+
+cat <<QTCONF >"$HOME/.config/qt6ct/qt6ct.conf"
+[Appearance]
+style=$QT_STYLE
+standard_dialogs=gtk3
+QTCONF
+
+# Set environment variable untuk sesi X11/XFCE Void Linux
+for PROFILE_FILE in "$HOME/.profile" "$HOME/.xprofile"; do
+  touch "$PROFILE_FILE"
+  sed -i '/QT_QPA_PLATFORMTHEME/d' "$PROFILE_FILE"
+  sed -i '/QT_STYLE_OVERRIDE/d' "$PROFILE_FILE"
+  echo 'export QT_QPA_PLATFORMTHEME=qt5ct' >>"$PROFILE_FILE"
+  echo "export QT_STYLE_OVERRIDE=$QT_STYLE" >>"$PROFILE_FILE"
+done
+export QT_QPA_PLATFORMTHEME=qt5ct
+export QT_STYLE_OVERRIDE="$QT_STYLE"
+
+echo "5. Menerapkan pengaturan keyboard XFCE4..."
+XFCE_XML_SRC="./xfce4/xfconf/xfce-perchannel-xml"
+XFCE_XML_DEST="$HOME/.config/xfce4/xfconf/xfce-perchannel-xml"
+
+if [ -d "$XFCE_XML_SRC" ]; then
+  mkdir -p "$XFCE_XML_DEST"
+
+  # Backup pengaturan lama jika belum ada backup
+  for FILE in keyboards.xml xfce4-keyboard-shortcuts.xml; do
+    if [ -f "$XFCE_XML_DEST/$FILE" ] && [ ! -f "$XFCE_XML_DEST/$FILE.bak" ]; then
+      cp "$XFCE_XML_DEST/$FILE" "$XFCE_XML_DEST/$FILE.bak"
+    fi
+    if [ -f "$XFCE_XML_SRC/$FILE" ]; then
+      cp "$XFCE_XML_SRC/$FILE" "$XFCE_XML_DEST/"
+    fi
+  done
+
+  # Restart xfconfd agar XFCE memuat ulang file XML dari disk
+  pkill -HUP xfconfd 2>/dev/null || killall xfconfd 2>/dev/null
+  echo "   Pengaturan keyboard & shortcut berhasil diterapkan."
+else
+  echo "   Peringatan: Folder $XFCE_XML_SRC tidak ditemukan, melewati pengaturan keyboard."
+fi
+
+echo "Selesai! Tema '$THEME_NAME' ($MODE), Qt '$QT_STYLE', & Keyboard telah diterapkan."
+echo "Catatan: Logout dan login kembali agar seluruh perubahan termuat sempurna."
