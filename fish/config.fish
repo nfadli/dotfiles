@@ -42,11 +42,9 @@ if status is-interactive
     end
 
     # Singkatan (Abbreviations) untuk XBPS
-    abbr -a si "sudo xbps-install -S"
-    abbr -a srm "sudo xbps-remove -Ro"
-    abbr -a soo "sudo xbps-remove -Oo"
-    abbr -a sup "sudo xbps-install -Su"
-
+    abbr -a xi "sudo xbps-install -S"
+    abbr -a xrm "sudo xbps-remove -Ro"
+    abbr -a xoo "sudo xbps-remove -Oo"
     # Singkatan lainnya tetap sama
     abbr -a cmt "$HOME/dotfiles/scripts/commit"
     abbr -a vs "code -r ."
