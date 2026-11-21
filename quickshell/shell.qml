@@ -1,4 +1,3 @@
-
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
@@ -8,11 +7,19 @@ import Quickshell.Services.SystemTray
 ShellRoot {
     id: root
 
-    // --- State & Deteksi Niri ---
+    // --- Konfigurasi Font & State ---
+    readonly property string barFont: "JetBrainsMono Nerd Font"
     property bool niriDetected: Quickshell.env("NIRI_SOCKET") !== ""
     property var workspaces: []
+    property string activeWindowTitle: ""
 
-    // Mengambil daftar workspace awal & memperbarui saat ada event
+    // Fungsi memotong teks maksimal 40 karakter
+    function truncateTitle(str) {
+        if (!str) return "";
+        return str.length > 40 ? str.substring(0, 37) + "..." : str;
+    }
+
+    // Mengambil daftar workspace
     Process {
         id: wsFetcher
         command: ["niri", "msg", "--json", "workspaces"]
@@ -21,10 +28,26 @@ ShellRoot {
             onStreamFinished: {
                 try {
                     let list = JSON.parse(this.text);
-                    // Urutkan berdasarkan indeks workspace Niri
                     list.sort((a, b) => a.idx - b.idx);
                     root.workspaces = list;
                 } catch (e) {}
+            }
+        }
+    }
+
+    // Mengambil judul jendela yang sedang fokus
+    Process {
+        id: winFetcher
+        command: ["niri", "msg", "--json", "focused-window"]
+        running: root.niriDetected
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    let win = JSON.parse(this.text);
+                    root.activeWindowTitle = (win && win.title) ? root.truncateTitle(win.title) : "";
+                } catch (e) {
+                    root.activeWindowTitle = "";
+                }
             }
         }
     }
@@ -36,8 +59,14 @@ ShellRoot {
         running: root.niriDetected
         stdout: SplitParser {
             onRead: line => {
-                if (line.includes("Workspace") || line.includes("Window")) {
+                if (line.includes("Workspace")) {
                     wsFetcher.running = true;
+                    winFetcher.running = true;
+                } else if (line.includes("Window")) {
+                    winFetcher.running = true;
+                    if (line.includes("Opened") || line.includes("Closed")) {
+                        wsFetcher.running = true;
+                    }
                 }
             }
         }
@@ -46,50 +75,73 @@ ShellRoot {
     // --- Tampilan Bar di Setiap Monitor ---
     Variants {
         model: Quickshell.screens
-
         PanelWindow {
             id: bar
             property var modelData
             screen: modelData
 
-            // Posisi bawah & ukuran ultra-tipis 14px (gaya i3status)
             anchors {
                 bottom: true
                 left: true
                 right: true
             }
-            implicitHeight: 14
-            color: "#11111b" // Latar gelap minimalis
+            implicitHeight: 18
+            color: "#11111b"
 
-            RowLayout {
+            Item {
                 anchors.fill: parent
-                anchors.leftMargin: 4
-                anchors.rightMargin: 6
-                spacing: 0
+                anchors.leftMargin: 8
+                anchors.rightMargin: 8
 
                 // ==========================================
-                // 1. KIRI: Workspace Niri (Pill + Dots Style)
+                // 1. KIRI: Title Bar (Maksimal 40 Karakter)
+                // ==========================================
+                Text {
+                    id: windowTitleText
+                    anchors.left: parent.left
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: root.niriDetected
+                    text: root.activeWindowTitle !== "" ? root.activeWindowTitle : "..."
+                    color: root.activeWindowTitle !== "" ? "#bac2de" : "#6c7086"
+                    font.pixelSize: 10
+                    font.family: root.barFont
+                    font.hintingPreference: Font.PreferFullHinting
+                    renderType: Text.NativeRendering
+                }
+
+                // Fallback teks jika dijalankan di luar Niri
+                Text {
+                    anchors.left: parent.left
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: !root.niriDetected
+                    text: "[niri tidak terdeteksi]"
+                    color: "#f38ba8"
+                    font.pixelSize: 10
+                    font.family: root.barFont
+                    font.hintingPreference: Font.PreferFullHinting
+                    renderType: Text.NativeRendering
+                }
+
+                // ==========================================
+                // 2. TENGAH: Workspace Niri (Tepat di Tengah)
                 // ==========================================
                 Row {
-                    Layout.alignment: Qt.AlignVCenter
-                    spacing: 4
+                    anchors.centerIn: parent
+                    spacing: 5
                     visible: root.niriDetected
 
                     Repeater {
-                        // Filter workspace khusus untuk monitor aktif
                         model: root.workspaces.filter(ws => ws.output === bar.screen.name)
-
                         delegate: Rectangle {
+                            id: wsPill
                             required property var modelData
                             readonly property bool isFocused: modelData.is_focused
                             readonly property bool hasWindows: modelData.active_window_id !== null
 
-                            // Gaya Niri: Pill memanjang jika aktif, titik kecil jika tidak aktif
-                            width: isFocused ? (wsLabel.implicitWidth + 8) : 6
-                            height: isFocused ? 11 : 6
+                            width: isFocused ? (wsLabel.implicitWidth + 10) : 7
+                            height: isFocused ? 13 : 7
                             radius: height / 2
                             anchors.verticalCenter: parent.verticalCenter
-
                             color: isFocused ? "#89b4fa" : (hasWindows ? "#a6adc8" : "#45475a")
 
                             Behavior on width { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
@@ -101,80 +153,70 @@ ShellRoot {
                                 visible: isFocused
                                 text: modelData.name ? modelData.name : modelData.idx
                                 color: "#11111b"
-                                font.pixelSize: 9
+                                font.pixelSize: 10
                                 font.bold: true
-                                font.family: "monospace"
+                                font.family: root.barFont
+                                font.hintingPreference: Font.PreferFullHinting
+                                renderType: Text.NativeRendering
                             }
 
                             MouseArea {
                                 anchors.fill: parent
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: {
-                                    Quickshell.execDetached(["niri", "msg", "action", "focus-workspace", String(modelData.idx)]);
+                                    Quickshell.execDetached(["niri", "msg", "action", "focus-monitor", bar.screen.name]);
+                                    Quickshell.execDetached(["niri", "msg", "action", "focus-workspace", String(wsPill.modelData.idx)]);
                                 }
                             }
                         }
                     }
                 }
 
-                // Fallback teks jika dijalankan di luar Niri
-                Text {
-                    visible: !root.niriDetected
-                    text: "[niri tidak terdeteksi]"
-                    color: "#f38ba8"
-                    font.pixelSize: 9
-                    font.family: "monospace"
-                }
-
-                // Spacer tengah
-                Item { Layout.fillWidth: true }
-
                 // ==========================================
-                // 2. KANAN: System Tray & Waktu (2026 API)
+                // 3. KANAN: System Tray & Waktu
                 // ==========================================
                 Row {
-                    Layout.alignment: Qt.AlignVCenter
-                    spacing: 6
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 8
 
-                    // System Tray (Quickshell.Services.SystemTray)
                     Row {
                         id: trayRow
                         anchors.verticalCenter: parent.verticalCenter
-                        spacing: 4
+                        spacing: 5
 
                         Repeater {
                             model: SystemTray.items
-
                             delegate: Item {
+                                id: trayItem
                                 required property var modelData
-                                width: 12
-                                height: 12
+                                width: 14
+                                height: 14
                                 anchors.verticalCenter: parent.verticalCenter
 
                                 Image {
                                     anchors.fill: parent
-                                    source: modelData.icon
-                                    sourceSize.width: 12
-                                    sourceSize.height: 12
+                                    source: trayItem.modelData.icon
+                                    sourceSize.width: 14
+                                    sourceSize.height: 14
                                     smooth: true
                                 }
 
-                                // Menu klik kanan standar 2026 (QsMenuAnchor)
                                 QsMenuAnchor {
                                     id: trayMenu
-                                    menu: modelData.menu
+                                    menu: trayItem.modelData.menu
                                     anchor.window: bar
-                                    anchor.rect.x: parent.mapToItem(bar.contentItem, 0, 0).x
-                                    anchor.rect.y: 0
                                 }
 
                                 MouseArea {
                                     anchors.fill: parent
                                     acceptedButtons: Qt.LeftButton | Qt.RightButton
                                     onClicked: mouse => {
-                                        if (mouse.button === Qt.LeftButton && !modelData.onlyMenu) {
-                                            modelData.activate();
-                                        } else if (modelData.hasMenu) {
+                                        if (mouse.button === Qt.LeftButton && !trayItem.modelData.onlyMenu) {
+                                            trayItem.modelData.activate();
+                                        } else if (trayItem.modelData.hasMenu) {
+                                            let pos = trayItem.mapToItem(bar.contentItem, 0, 0);
+                                            trayMenu.anchor.rect = Qt.rect(pos.x, pos.y, trayItem.width, trayItem.height);
                                             trayMenu.open();
                                         }
                                     }
@@ -183,10 +225,10 @@ ShellRoot {
                         }
                     }
 
-                    // Pemisah vertikal tipis ala i3status
+                    // Pemisah vertikal tipis
                     Rectangle {
                         width: 1
-                        height: 9
+                        height: 11
                         anchors.verticalCenter: parent.verticalCenter
                         color: "#313244"
                         visible: SystemTray.items.values.length > 0
@@ -197,18 +239,19 @@ ShellRoot {
                         id: clockText
                         anchors.verticalCenter: parent.verticalCenter
                         color: "#cdd6f4"
-                        font.pixelSize: 10
-                        font.family: "monospace"
+                        font.pixelSize: 11
+                        font.family: root.barFont
                         font.bold: true
-                        text: Qt.formatDateTime(clock.date, "ddd dd MMM  HH:mm")
-                    }
-
-                    SystemClock {
-                        id: clock
-                        precision: SystemClock.Minutes
-                    }
-                }
-            }
-        }
-    }
+font.hintingPreference: Font.PreferFullHinting
+renderType: Text.NativeRendering
+text: Qt.formatDateTime(clock.date, "ddd dd MMM  HH:mm")
+}
+SystemClock {
+id: clock
+precision: SystemClock.Minutes
+}
+}
+}
+}
+}
 }
