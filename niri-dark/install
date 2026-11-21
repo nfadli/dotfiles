@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Ambil direktori tempat script ini berada
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ARCHIVE="$SCRIPT_DIR/adw-gtk3v6.5.tar.xz"
+THEMES_DIR="$HOME/.themes"
+
+# Validasi argumen
+MODE="${1:-}"
+if [[ "$MODE" != "dark" && "$MODE" != "white" && "$MODE" != "light" ]]; then
+    echo "Penggunaan: $0 [dark|white]"
+    exit 1
+fi
+
+# Tentukan nama tema & skema warna berdasarkan argumen
+if [[ "$MODE" == "dark" ]]; then
+    THEME_NAME="adw-gtk3-dark"
+    COLOR_SCHEME="prefer-dark"
+    PREFER_DARK=1
+else
+    THEME_NAME="adw-gtk3"
+    COLOR_SCHEME="prefer-light" # atau 'default'
+    PREFER_DARK=0
+fi
+
+# 1. Cek file arsip
+if [[ ! -f "$ARCHIVE" ]]; then
+    echo "Error: File $ARCHIVE tidak ditemukan!"
+    exit 1
+fi
+
+# 2. Ekstrak ke ~/.themes
+echo "==> Mengekstrak $ARCHIVE ke $THEMES_DIR..."
+mkdir -p "$THEMES_DIR"
+tar -xf "$ARCHIVE" -C "$THEMES_DIR"
+
+if [[ ! -d "$THEMES_DIR/$THEME_NAME" ]]; then
+    echo "Error: Folder tema '$THEMES_DIR/$THEME_NAME' tidak ditemukan setelah ekstraksi."
+    exit 1
+fi
+
+# 3. Terapkan via gsettings (untuk GNOME / Niri / Wayland portal & GTK apps)
+if command -v gsettings &> /dev/null; then
+    echo "==> Menerapkan gsettings ($THEME_NAME | $COLOR_SCHEME)..."
+    gsettings set org.gnome.desktop.interface gtk-theme "$THEME_NAME"
+    gsettings set org.gnome.desktop.interface color-scheme "$COLOR_SCHEME"
+else
+    echo "Warning: gsettings tidak ditemukan, melewati langkah ini."
+fi
+
+# 4. Konfigurasi GTK 3 (~/.config/gtk-3.0/settings.ini)
+echo "==> Mengatur konfigurasi GTK 3..."
+GTK3_DIR="$HOME/.config/gtk-3.0"
+mkdir -p "$GTK3_DIR"
+cat > "$GTK3_DIR/settings.ini" <<EOF
+[Settings]
+gtk-theme-name=$THEME_NAME
+gtk-application-prefer-dark-theme=$PREFER_DARK
+EOF
+
+# 5. Konfigurasi GTK 4 & Libadwaita (~/.config/gtk-4.0/)
+echo "==> Mengatur konfigurasi GTK 4 & Libadwaita..."
+GTK4_DIR="$HOME/.config/gtk-4.0"
+mkdir -p "$GTK4_DIR"
+
+# Hapus symlink/file lama agar bersih saat ganti dark <-> white
+rm -rf "$GTK4_DIR/assets" "$GTK4_DIR/gtk.css" "$GTK4_DIR/gtk-dark.css"
+
+# Buat symlink dari tema yang diekstrak ke folder gtk-4.0
+ln -sf "$THEMES_DIR/$THEME_NAME/gtk-4.0/assets" "$GTK4_DIR/assets"
+ln -sf "$THEMES_DIR/$THEME_NAME/gtk-4.0/gtk.css" "$GTK4_DIR/gtk.css"
+ln -sf "$THEMES_DIR/$THEME_NAME/gtk-4.0/gtk-dark.css" "$GTK4_DIR/gtk-dark.css"
+
+cat > "$GTK4_DIR/settings.ini" <<EOF
+[Settings]
+gtk-theme-name=$THEME_NAME
+gtk-application-prefer-dark-theme=$PREFER_DARK
+EOF
+
+echo "✅ Selesai! Tema '$THEME_NAME' ($MODE) berhasil diterapkan."
