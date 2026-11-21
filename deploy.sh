@@ -7,7 +7,7 @@ CFG="$HOME/.config"
 TARGETS=(
   "fish"
   "gitconfig"
-  "nvim"
+  "helix"
   "alacritty"
   "niri"
   "quickshell"
