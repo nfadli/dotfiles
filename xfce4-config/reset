@@ -24,7 +24,7 @@ rm -rf "$HOME/.local/share/themes/adw-gtk3"* \
 # 4. Salin ulang kerangka konfigurasi bawaan dari /etc/xdg (jika tersedia)
 if [ -d "/etc/xdg/xfce4" ]; then
   mkdir -p "$HOME/.config"
-  cp -r /etc/xdg/xfce4 "$HOME/.config/"
+  cp -rf /etc/xdg/xfce4 "$HOME/.config/"
 fi
 
 echo "Reset selesai! Sesi akan ditutup otomatis dalam 3 detik..."

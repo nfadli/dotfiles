@@ -1,36 +1,27 @@
 set -U fish_greeting
 
 if status is-interactive
-    function ss --description "Custom one-line xbps search with version"
+    function ss --description "Custom one-line dnf search with version"
         if test (count $argv) -eq 0
             echo "Use : ss <package-name>"
             return 1
         end
 
-        xbps-query -Rs "$argv" | sort | awk '
+        # Tambahan \n pada queryformat agar setiap paket dicetak di baris baru
+        dnf repoquery --qf "%{name}|%{version}-%{release}|%{summary}\n" "*$argv*" 2>/dev/null | sort -u | awk -F'|' '
         BEGIN {
+            while (("rpm -qa --qf \"%{NAME}\n\"" | getline inst_pkg) > 0) {
+                installed[inst_pkg] = 1
+            }
+            close("rpm -qa --qf \"%{NAME}\n\"")
             print "----------------------------------------------------------------------------------------------------"
         }
-        {
-            # Format output bawaan xbps-query -Rs: "[*] nama-paket-1.2.3_1 Deskripsi paket"
-            status_flag = $1
-            pkg_ver = $2
-            
-            # Ambil deskripsi (hilangkan 2 kolom pertama)
-            desc = $0
-            sub(/^\[.\] [^ ]+ +/, "", desc)
+        NF >= 3 {
+            pkg = $1
+            ver = $2
+            desc = $3
 
-            # Pisahkan nama paket dan versi (dipisahkan oleh tanda hubung terakhir)
-            if (match(pkg_ver, /-[^-]+$/)) {
-                pkg = substr(pkg_ver, 1, RSTART - 1)
-                ver = substr(pkg_ver, RSTART + 1)
-            } else {
-                pkg = pkg_ver
-                ver = "N/A"
-            }
-
-            # [*] artinya terinstal, [-] artinya belum terinstal
-            if (status_flag == "[*]") {
+            if (pkg in installed) {
                 printf "\033[1;32m%-15s\033[0m \033[1;36m%-25s\033[0m \033[0;33m%-18s\033[0m : %s\n", "[installed]", pkg, "(" ver ")", desc
             } else {
                 printf "\033[0;90m%-15s\033[0m \033[1;37m%-25s\033[0m \033[0;33m%-18s\033[0m : %s\n", "[not installed]", pkg, "(" ver ")", desc
@@ -41,10 +32,11 @@ if status is-interactive
         }'
     end
 
-    # Singkatan (Abbreviations) untuk XBPS
-    abbr -a xi "sudo xbps-install -S"
-    abbr -a xrm "sudo xbps-remove -Ro"
-    abbr -a xoo "sudo xbps-remove -Oo"
+    # Singkatan (Abbreviations) untuk DNF
+    abbr -a di "sudo dnf install"
+    abbr -a drm "sudo dnf remove"
+    abbr -a doo "sudo dnf autoremove"
+    
     # Singkatan lainnya tetap sama
     abbr -a cmt "$HOME/dotfiles/scripts/commit"
     abbr -a vs "code -r ."

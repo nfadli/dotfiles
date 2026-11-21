@@ -55,15 +55,4 @@ if command -v gsettings >/dev/null 2>&1; then
   gsettings set org.gnome.desktop.interface color-scheme "$SCHEME" 2>/dev/null
 fi
 
-# 5. Qt5 & Qt6 (hanya di ~/.config)
-xbps-query adwaita-qt adwaita-qt6 qt5ct qt6ct >/dev/null 2>&1 || sudo xbps-install -Sy adwaita-qt adwaita-qt6 qt5ct qt6ct
-mkdir -p "$HOME/.config/qt5ct" "$HOME/.config/qt6ct" "$HOME/.config/environment.d"
-printf "[Appearance]\nstyle=%s\nstandard_dialogs=gtk3\n" "$QT" | tee "$HOME/.config/qt5ct/qt5ct.conf" >"$HOME/.config/qt6ct/qt6ct.conf"
-printf "QT_QPA_PLATFORMTHEME=qt5ct\nQT_STYLE_OVERRIDE=%s\n" "$QT" >"$HOME/.config/environment.d/qt.conf"
-
-# Tambah environment Qt ke sistem global (/etc/environment) agar terbaca di Void Linux tanpa mengotori $HOME
-if ! grep -q "QT_QPA_PLATFORMTHEME=qt5ct" /etc/environment 2>/dev/null; then
-  echo "QT_QPA_PLATFORMTHEME=qt5ct" | sudo tee -a /etc/environment >/dev/null
-fi
-
 echo "Selesai! Tema '$THEME' ($1), Qt '$QT', & Keyboard telah diterapkan."
