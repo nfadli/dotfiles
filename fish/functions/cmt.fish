@@ -9,7 +9,7 @@ function cmt
         return 1
     end
 
-    set first_word $words
+    set first_word $words[1]
     set rest_words $words[2..-1]
     set commit_msg "($first_word) $rest_words"
 
