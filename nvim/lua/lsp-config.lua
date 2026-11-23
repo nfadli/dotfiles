@@ -23,6 +23,7 @@ local servers = {
   tailwindcss = {},
   emmet_ls = {},
   clangd = {},
+  zls = {},
 }
 
 for server, config in pairs(servers) do
