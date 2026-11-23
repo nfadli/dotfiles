@@ -1,0 +1,16 @@
+{
+    (
+        modifiers: [
+            Ctrl,
+            Shift,
+        ],
+        key: "H",
+    ): TabPrev,
+    (
+        modifiers: [
+            Ctrl,
+            Shift,
+        ],
+        key: "L",
+    ): TabNext,
+}
