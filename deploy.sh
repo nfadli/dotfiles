@@ -7,7 +7,6 @@ CFG="$HOME/.config"
 TARGETS=(
   "fish"
   "gitconfig"
-  "cosmic"
   "nvim"
 )
 [ -d "$SRC" ] || {

@@ -24,6 +24,7 @@ local servers = {
   emmet_ls = {},
   clangd = {},
   zls = {},
+  nixd= {},
 }
 
 for server, config in pairs(servers) do
