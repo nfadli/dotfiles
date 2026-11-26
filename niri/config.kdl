@@ -52,6 +52,8 @@ layout {
     }
 }
 spawn-at-startup "waybar"
+spawn-at-startup "pipewire"
+spawn-at-startup "wireplumber"
 hotkey-overlay {
 }
 screenshot-path "~/Pictures/Screenshots/Screenshot from %Y-%m-%d %H-%M-%S.png"
