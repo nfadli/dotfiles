@@ -1,0 +1,124 @@
+#!/usr/bin/env bash
+set -e
+
+# Direktori target di dalam $HOME
+INSTALL_DIR="$HOME/.local/opt/vscode"
+BIN_DIR="$HOME/.local/bin"
+APP_DIR="$HOME/.local/share/applications"
+ICON_DIR="$HOME/.local/share/icons/hicolor/512x512/apps"
+PIXMAPS_DIR="$HOME/.local/share/pixmaps"
+
+refresh_desktop_cache() {
+    if command -v update-desktop-database >/dev/null 2>&1; then
+        update-desktop-database "$APP_DIR" 2>/dev/null || true
+    fi
+
+    if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+        gtk-update-icon-cache -f -t "$HOME/.local/share/icons/hicolor" 2>/dev/null || true
+    fi
+}
+
+do_uninstall() {
+    echo "=== Menghapus instalasi VS Code dari $HOME ==="
+    rm -rf "$INSTALL_DIR"
+    rm -f "$BIN_DIR/code"
+    rm -f "$APP_DIR/vscode.desktop"
+    rm -f "$APP_DIR/vscode-url-handler.desktop"
+    rm -f "$ICON_DIR/vscode.png"
+    rm -f "$PIXMAPS_DIR/vscode.png"
+
+    refresh_desktop_cache
+
+    if [ "$1" = "--purge" ]; then
+        echo "=== Menghapus sisa konfigurasi & ekstensi (--purge) ==="
+        rm -rf "$HOME/.config/Code"
+        rm -rf "$HOME/.vscode"
+    else
+        echo "Catatan: Pengaturan & ekstensi di ~/.config/Code dan ~/.vscode dibiarkan aman."
+        echo "Gunakan '$0 uninstall --purge' jika ingin menghapus semuanya sampai bersih."
+    fi
+
+    echo "=== Uninstall selesai! ==="
+}
+
+# Cek argumen pertama
+case "$1" in
+    uninstall)
+        do_uninstall "$2"
+        exit 0
+        ;;
+    ""|-h|--help)
+        echo "Penggunaan:"
+        echo "  Install   : $0 <path/ke/file-vscode.tar.gz>"
+        echo "  Uninstall : $0 uninstall [--purge]"
+        exit 0
+        ;;
+esac
+
+ARCHIVE_PATH="$(realpath "$1")"
+
+if [ ! -f "$ARCHIVE_PATH" ]; then
+    echo "Error: File '$ARCHIVE_PATH' tidak ditemukan!"
+    exit 1
+fi
+
+echo "=== 1. Menyiapkan direktori di $HOME ==="
+rm -rf "$INSTALL_DIR"
+mkdir -p "$INSTALL_DIR" "$BIN_DIR" "$APP_DIR" "$ICON_DIR" "$PIXMAPS_DIR"
+
+echo "=== 2. Mengekstrak $ARCHIVE_PATH ke $INSTALL_DIR ==="
+tar -xzf "$ARCHIVE_PATH" -C "$INSTALL_DIR" --strip-components=1
+
+echo "=== 3. Membuat symlink perintah 'code' di $BIN_DIR ==="
+ln -sf "$INSTALL_DIR/bin/code" "$BIN_DIR/code"
+
+echo "=== 4. Menyalin ikon ke direktori standar XDG ==="
+ICON_SRC="$INSTALL_DIR/resources/app/resources/linux/code.png"
+if [ -f "$ICON_SRC" ]; then
+    cp "$ICON_SRC" "$ICON_DIR/vscode.png"
+    cp "$ICON_SRC" "$PIXMAPS_DIR/vscode.png"
+fi
+
+echo "=== 5. Membuat file .desktop (Main & URL Handler) ==="
+cat << EOF > "$APP_DIR/vscode.desktop"
+[Desktop Entry]
+Name=Visual Studio Code
+Comment=Code Editing. Redefined.
+GenericName=Text Editor
+Exec=$INSTALL_DIR/code --enable-features=UseOzonePlatform,WaylandWindowDecorations --ozone-platform-hint=auto %F
+Icon=vscode
+Type=Application
+StartupNotify=false
+StartupWMClass=Code
+Categories=TextEditor;Development;IDE;
+MimeType=application/x-code-workspace;
+Actions=new-empty-window;
+Keywords=vscode;code;editor;ide;
+
+[Desktop Action new-empty-window]
+Name=New Empty Window
+Exec=$INSTALL_DIR/code --enable-features=UseOzonePlatform,WaylandWindowDecorations --ozone-platform-hint=auto --new-window %F
+Icon=vscode
+EOF
+
+cat << EOF > "$APP_DIR/vscode-url-handler.desktop"
+[Desktop Entry]
+Name=Visual Studio Code - URL Handler
+Comment=Code Editing. Redefined.
+GenericName=Text Editor
+Exec=$INSTALL_DIR/code --open-url %U
+Icon=vscode
+Type=Application
+NoDisplay=true
+StartupNotify=true
+Categories=Utility;TextEditor;Development;IDE;
+MimeType=x-scheme-handler/vscode;
+Keywords=vscode;
+EOF
+
+echo "=== 6. Memperbarui cache desktop & ikon ==="
+refresh_desktop_cache
+
+echo "=== Selesai! ==="
+echo "Lokasi instalasi : $INSTALL_DIR"
+echo "Pastikan '$BIN_DIR' sudah ada di dalam \$PATH Anda."

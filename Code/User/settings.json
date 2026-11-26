@@ -50,6 +50,10 @@
       ]
     },
     {
+      "before": ["s"],
+      "commands": ["flash-vscode.start"]
+    },
+    {
       "before": ["<leader>", "e"],
       "commands": ["oil-code.open"]
     },
@@ -97,7 +101,7 @@
     "-workbench.action.terminal.focusFind"
   ],
   //formatter
-  "editor.defaultFormatter": "oxc.oxc-vscode",
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
   "editor.formatOnSave": true, // disable default behavior
   //rust
   "[rust]": {
