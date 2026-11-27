@@ -374,3 +374,22 @@ hl.window_rule({
     move  = "20 monitor_h-120",
     float = true,
 })
+hl.window_rule({
+    name  = "move-hyprland-run",
+    match = { class = "hyprland-run" },
+
+    move  = "20 monitor_h-120",
+    float = true,
+})
+hl.window_rule({
+    name = "git-dev-float-title",
+    match = { title = "(?i).*git-dev.*" },
+    float = true,
+    center = true,
+})
+hl.window_rule({
+    name = "git-dev-float-class",
+    match = { class = "(?i).*git-dev.*" },
+    float = true,
+    center = true,
+})
