@@ -8,6 +8,7 @@ TARGETS=(
   "fish"
   "gitconfig"
   "Code"
+  "hypr"
 )
 [ -d "$SRC" ] || {
   echo "Error: $SRC not found"
