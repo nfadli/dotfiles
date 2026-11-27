@@ -7,8 +7,7 @@ CFG="$HOME/.config"
 TARGETS=(
   "fish"
   "gitconfig"
-  "cosmic"
-  "nvim"
+  "Code"
 )
 [ -d "$SRC" ] || {
   echo "Error: $SRC not found"
