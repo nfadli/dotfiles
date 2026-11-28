@@ -35,11 +35,9 @@ if [ "$1" == "reset" ]; then
         fi
         ;;
       "hypr")
-        # Hanya hapus isi file di dalam hypr, jangan hapus foldernya agar Hyprland tidak error
         find "$CFG/hypr" -mindepth 1 -delete 2>/dev/null || true
         ;;
       *)
-        # Untuk folder lain selain hypr, tetap bisa hapus total atau sesuaikan
         rm -rf "$CFG/$name"
         ;;
       esac
@@ -77,11 +75,9 @@ for name in "${TARGETS[@]}"; do
       cp -rf "$item/User/"* "$target/User/" 2>/dev/null || true
       ;;
     "hypr")
-      # Timpa/salin isi folder hypr secara langsung tanpa menghapus foldernya
       cp -rf "$item"/* "$target/" 2>/dev/null || true
       ;;
     *)
-      # Untuk folder lain, gunakan timpa langsung (cp -rf tanpa rm -rf target)
       cp -rf "$item"/. "$target/" 2>/dev/null || cp -rf "$item"/* "$target/" 2>/dev/null || true
       ;;
     esac
