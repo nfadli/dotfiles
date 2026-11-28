@@ -278,20 +278,12 @@ hl.bind(mainMod .. " + R", hl.dsp.exec_cmd(menu))
 hl.bind(mainMod .. " + P", hl.dsp.window.pseudo())
 --modified
 hl.bind(mainMod .. " + D", hl.dsp.layout("togglesplit")) -- dwindle only
-hl.bind(mainMod .. " + J", function()
-	hl.dispatch(hl.dsp.window.cycle_next())
-	hl.dispatch(hl.dsp.window.alter_zorder({ mode = "top" }))
-end)
-hl.bind(mainMod .. " + K", function()
-	hl.dispatch(hl.dsp.window.cycle_next())
-	hl.dispatch(hl.dsp.window.alter_zorder({ mode = "top" }))
-end)
 --modified
 -- Move focus with mainMod + arrow keys
-hl.bind(mainMod .. " + left", hl.dsp.focus({ direction = "left" }))
-hl.bind(mainMod .. " + right", hl.dsp.focus({ direction = "right" }))
-hl.bind(mainMod .. " + up", hl.dsp.focus({ direction = "up" }))
-hl.bind(mainMod .. " + down", hl.dsp.focus({ direction = "down" }))
+hl.bind(mainMod .. " + H", hl.dsp.focus({ direction = "left" }))
+hl.bind(mainMod .. " + L", hl.dsp.focus({ direction = "right" }))
+hl.bind(mainMod .. " + K", hl.dsp.focus({ direction = "up" }))
+hl.bind(mainMod .. " + J", hl.dsp.focus({ direction = "down" }))
 
 -- Switch workspaces with mainMod + [0-9]
 -- Move active window to a workspace with mainMod + SHIFT + [0-9]
@@ -392,22 +384,8 @@ hl.window_rule({
 	float = true,
 })
 hl.window_rule({
-	name = "all-float",
-	match = { class = ".*" },
+	name = "dev-gui",
+	match = { title = ".*(-dev|-git|-demo|com.app).*" },
 	float = true,
-	center = true,
-})
-hl.window_rule({
-	name = "browser-size",
-	match = { class = "firefox" },
-	float = true,
-	size = { 1280, 800 },
-	center = true,
-})
-hl.window_rule({
-	name = "term-fize",
-	match = { class = "kitty|Alacritty" },
-	float = true,
-	size = { 1340, 760 },
 	center = true,
 })
