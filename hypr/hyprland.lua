@@ -278,12 +278,11 @@ hl.bind(mainMod .. " + R", hl.dsp.exec_cmd(menu))
 hl.bind(mainMod .. " + P", hl.dsp.window.pseudo())
 --modified
 hl.bind(mainMod .. " + D", hl.dsp.layout("togglesplit")) -- dwindle only
---modified
--- Move focus with mainMod + arrow keys
 hl.bind(mainMod .. " + H", hl.dsp.focus({ direction = "left" }))
 hl.bind(mainMod .. " + L", hl.dsp.focus({ direction = "right" }))
 hl.bind(mainMod .. " + K", hl.dsp.focus({ direction = "up" }))
 hl.bind(mainMod .. " + J", hl.dsp.focus({ direction = "down" }))
+--modified
 
 -- Switch workspaces with mainMod + [0-9]
 -- Move active window to a workspace with mainMod + SHIFT + [0-9]
@@ -383,9 +382,11 @@ hl.window_rule({
 	move = "20 monitor_h-120",
 	float = true,
 })
+--modified
 hl.window_rule({
 	name = "dev-gui",
 	match = { title = ".*(-dev|-git|-demo|com.app).*" },
 	float = true,
 	center = true,
 })
+--modified
