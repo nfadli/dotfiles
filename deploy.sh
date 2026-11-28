@@ -9,6 +9,7 @@ TARGETS=(
   "gitconfig"
   "nvim"
   "hypr"
+  "kitty"
 )
 [ -d "$SRC" ] || {
   echo "Error: $SRC not found"
