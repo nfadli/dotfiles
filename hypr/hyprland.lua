@@ -279,6 +279,7 @@ hl.bind(mainMod .. " + H", hl.dsp.focus({ direction = "left" }))
 hl.bind(mainMod .. " + L", hl.dsp.focus({ direction = "right" }))
 hl.bind(mainMod .. " + K", hl.dsp.focus({ direction = "up" }))
 hl.bind(mainMod .. " + J", hl.dsp.focus({ direction = "down" }))
+hl.bind("Print", hl.dsp.exec_cmd('grim -g "$(slurp -d)" - | wl-copy'))
 --modified
 
 -- Switch workspaces with mainMod + [0-9]
